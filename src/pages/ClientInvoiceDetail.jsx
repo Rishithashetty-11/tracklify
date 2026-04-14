@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FileText, IndianRupee, Clock, CheckCircle, Activity, CreditCard, ChevronLeft } from 'lucide-react';
+import { Clock, CheckCircle, Activity, CreditCard, ChevronLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
+import PaymentModal from '../components/PaymentModal';
 
 export default function ClientInvoiceDetail() {
   const { id } = useParams();
@@ -10,9 +11,11 @@ export default function ClientInvoiceDetail() {
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     fetchInvoiceDetails();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const loadRazorpayCore = () => {
@@ -39,7 +42,11 @@ export default function ClientInvoiceDetail() {
     }
   };
 
-  const handlePayment = async () => {
+  const handlePaymentClick = () => {
+    setIsModalOpen(true);
+  };
+
+  const handleProceed = async (selectedMethod) => {
     setPaying(true);
     try {
       const resLoaded = await loadRazorpayCore();
@@ -53,8 +60,12 @@ export default function ClientInvoiceDetail() {
       const orderRes = await api.post('/create-order', { invoiceId: invoice._id, amount: invoice.totalAmount });
       const { id: order_id, amount, currency } = orderRes.data;
 
+      // Fetch dynamic configuration
+      const configRes = await api.get('/config');
+      const RAZORPAY_KEY = configRes.data.key;
+
       const options = {
-        key: 'rzp_test_zH4D5Q2G8WwK9O', // using mock/test key, preferably should be in ENV
+        key: RAZORPAY_KEY,
         amount: amount.toString(),
         currency: currency,
         name: 'Tracklify',
@@ -68,32 +79,44 @@ export default function ClientInvoiceDetail() {
               razorpay_signature: response.razorpay_signature,
               invoiceId: invoice._id
             });
-            if (verification.data.message === "Payment verified successfully") {
-              toast.success("Payment Successful!");
-              fetchInvoiceDetails(); // reload to show PAID status
+            if (verification.data.message === "Payment verified successfully" || verification.data.success) {
+              setIsModalOpen(false);
+              navigate(`/client/payment-success/${invoice._id}?payment_id=${response.razorpay_payment_id}`);
+            } else {
+              setIsModalOpen(false);
+              navigate(`/client/payment-failure/${invoice._id}`);
             }
           } catch (err) {
-            toast.error("Payment verification failed.");
-            console.error(err);
+            setIsModalOpen(false);
+            navigate(`/client/payment-failure/${invoice._id}`);
           }
         },
         prefill: {
           name: "Client Name",
           email: "client@example.com",
-          contact: "9999999999"
+          contact: "9999999999",
+          method: selectedMethod
         },
         theme: {
           color: "#4f46e5"
+        },
+        modal: {
+          ondismiss: function() {
+            setIsModalOpen(false);
+            setPaying(false);
+          }
         }
       };
 
       const paymentObject = new window.Razorpay(options);
+      
       paymentObject.open();
 
     } catch (error) {
       console.error('Payment Error:', error);
-      toast.error('Could not initiate payment. Please try again later.');
-    } finally {
+      const errorMessage = error.response?.data?.message || 'Could not initiate payment. Please try again later.';
+      toast.error(errorMessage);
+      setIsModalOpen(false);
       setPaying(false);
     }
   };
@@ -158,17 +181,26 @@ export default function ClientInvoiceDetail() {
         {invoice.status === 'UNPAID' && (
           <div className="pt-4 border-t border-gray-100 flex justify-end">
             <button 
-              onClick={handlePayment} 
-              disabled={paying}
+              onClick={handlePaymentClick} 
               className="btn-primary shadow-lg shadow-primary-500/30 px-8 py-3 text-lg flex items-center gap-2"
             >
-              {paying ? <Activity className="animate-spin" size={20} /> : <CreditCard size={20} />}
-              {paying ? 'Processing...' : 'Pay Now with Razorpay'}
+              <CreditCard size={20} />
+              Pay Now
             </button>
           </div>
         )}
 
       </div>
+      
+      <PaymentModal 
+        isOpen={isModalOpen}
+        onClose={() => {
+          if (!paying) setIsModalOpen(false);
+        }}
+        amount={invoice.totalAmount}
+        onProceed={handleProceed}
+        paying={paying}
+      />
     </div>
   );
 }

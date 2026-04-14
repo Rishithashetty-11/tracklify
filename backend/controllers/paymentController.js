@@ -2,10 +2,20 @@ const Razorpay = require("razorpay");
 const crypto = require("crypto");
 const Invoice = require("../models/invoice");
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_mock',
-  key_secret: process.env.RAZORPAY_KEY_SECRET || 'mock_secret',
-});
+let razorpay;
+if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
+  razorpay = new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET,
+  });
+}
+
+exports.getRazorpayKey = (req, res) => {
+  if (!process.env.RAZORPAY_KEY_ID) {
+    return res.status(500).json({ message: "Razorpay Key ID not configured on server" });
+  }
+  res.json({ key: process.env.RAZORPAY_KEY_ID });
+};
 
 exports.createOrder = async (req, res) => {
   try {
@@ -20,8 +30,11 @@ exports.createOrder = async (req, res) => {
        return res.status(400).json({ message: "Invoice is already paid" });
     }
 
+    if (!razorpay || !process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+      return res.status(500).json({ message: "Razorpay is not configured on the server. Please check your .env file." });
+    }
+
     const order = await razorpay.orders.create({
-      // Razorpay expects amount in smallest currency unit (paise)
       amount: Math.round(invoice.totalAmount * 100), 
       currency: "INR",
       receipt: "receipt_" + invoiceId,
@@ -39,12 +52,16 @@ exports.createOrder = async (req, res) => {
 
 exports.verifyPayment = async (req, res) => {
   try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, invoiceId } = req.body;
+
+    if (!process.env.RAZORPAY_KEY_SECRET) {
+      return res.status(500).json({ message: "Razorpay is not configured on the server" });
+    }
 
     const body = razorpay_order_id + "|" + razorpay_payment_id;
 
     const expectedSignature = crypto
-      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET || 'mock_secret')
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
       .update(body.toString())
       .digest("hex");
 
@@ -55,7 +72,7 @@ exports.verifyPayment = async (req, res) => {
         invoice.paymentId = razorpay_payment_id;
         await invoice.save();
       }
-      return res.json({ success: true });
+      return res.json({ success: true, message: "Payment verified successfully" });
     } else {
       return res.status(400).json({ success: false, message: "Invalid signature" });
     }

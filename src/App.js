@@ -15,6 +15,8 @@ import ClientDashboard from './pages/ClientDashboard';
 import ClientInvoices from './pages/ClientInvoices';
 import ClientInvoiceDetail from './pages/ClientInvoiceDetail';
 import FreelancerList from './pages/FreelancerList';
+import PaymentSuccess from './pages/PaymentSuccess';
+import PaymentFailure from './pages/PaymentFailure';
 import Layout from './components/Layout';
 
 function PrivateRoute({ children, role }) {
@@ -55,6 +57,8 @@ function App() {
         <Route path="/freelancers" element={<PrivateRoute role="client"><FreelancerList /></PrivateRoute>} />
         <Route path="/client-invoices" element={<PrivateRoute role="client"><ClientInvoices /></PrivateRoute>} />
         <Route path="/client-invoice/:id" element={<PrivateRoute role="client"><ClientInvoiceDetail /></PrivateRoute>} />
+        <Route path="/client/payment-success/:id" element={<PrivateRoute role="client"><PaymentSuccess /></PrivateRoute>} />
+        <Route path="/client/payment-failure/:id" element={<PrivateRoute role="client"><PaymentFailure /></PrivateRoute>} />
       </Routes>
     </Router>
   );

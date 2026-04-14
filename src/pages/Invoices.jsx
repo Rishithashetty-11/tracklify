@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Download, User, Clock, IndianRupee, Plus, CheckCircle, AlertCircle, RefreshCw, Loader2, CreditCard } from 'lucide-react';
+import { FileText, Download, User, Clock, IndianRupee, Plus, CheckCircle, AlertCircle, Loader2, CreditCard } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 
@@ -75,7 +75,7 @@ export default function Invoices() {
       const order = res.data;
 
       const options = {
-        key: 'rzp_test_mock', 
+        key: 'rzp_test_zH4D5Q2G8WwK9O', // match other files
         amount: order.amount,
         currency: order.currency,
         name: 'Tracklify',
@@ -101,6 +101,19 @@ export default function Invoices() {
         },
         theme: { color: '#0ea5e9' }
       };
+
+      if (order.id.startsWith("mock_order_")) {
+          toast.success("Simulation: Proceeding with Mock Payment...", { id: toastId });
+          setTimeout(() => {
+              options.handler({
+                  razorpay_order_id: order.id,
+                  razorpay_payment_id: "pay_mock_" + Date.now(),
+                  razorpay_signature: "mock_signature"
+              });
+          }, 1500);
+          setPaying(false);
+          return;
+      }
       
       const rzp = new window.Razorpay(options);
       rzp.on('payment.failed', function (response){
@@ -111,6 +124,7 @@ export default function Invoices() {
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to initialize payment gateway', { id: toastId });
     } finally {
+      if(!paying) return;
       setPaying(false);
     }
   };
@@ -210,7 +224,7 @@ export default function Invoices() {
                     </button>
                  )}
                  <button 
-                  onClick={() => handleDownload(inv.projectId?._id || inv.projectId || inv._id)} 
+                  onClick={() => handleDownload(inv._id || inv.id)} 
                   className="btn-secondary bg-white hover:bg-gray-50 flex-1 px-2 py-2 text-xs flex items-center justify-center gap-1.5 transition-colors shadow-sm text-gray-700 border border-gray-200 uppercase font-semibold tracking-wider hover:border-gray-300"
                  >
                    <Download size={14} /> PDF

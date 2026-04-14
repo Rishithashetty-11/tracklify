@@ -5,40 +5,19 @@ const PDFDocument = require("pdfkit");
 
 exports.downloadInvoice = async (req, res) => {
   try {
-    const projectId = req.params.id;
+    const invoiceId = req.params.id;
 
-    // ✅ get project
-    const project = await Project.findById(projectId);
+    // ✅ get invoice
+    const invoice = await Invoice.findById(invoiceId).populate('projectId');
 
+    if (!invoice) {
+      return res.status(404).json({ message: "Invoice not found" });
+    }
+
+    const project = invoice.projectId;
     if (!project) {
       return res.status(404).json({ message: "Project not found" });
     }
-
-    // ✅ get time logs
-    const logs = await TimeLog.find({ projectId });
-
-    let totalSeconds = 0;
-
-    logs.forEach((log) => {
-      totalSeconds += log.duration;
-    });
-
-    // ✅ convert to hours
-    const totalHours = totalSeconds / 3600;
-
-    // ✅ calculate amount
-    const totalAmount = totalHours * project.hourlyRate;
-
-    // ✅ save invoice in DB
-    const { clientId, freelancerId } = req.query;
-    const invoice = await Invoice.create({
-      projectId,
-      clientId: clientId || null,
-      freelancerId: freelancerId || null,
-      totalHours,
-      hourlyRate: project.hourlyRate,
-      totalAmount,
-    });
 
     // 🧾 CREATE PDF
     const doc = new PDFDocument();
@@ -47,8 +26,15 @@ exports.downloadInvoice = async (req, res) => {
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename=invoice-${projectId}.pdf`
+      `attachment; filename=invoice-${invoiceId}.pdf`
     );
+
+    doc.on("error", (pdfErr) => {
+      console.error("PDF error:", pdfErr);
+      if (!res.headersSent) {
+        res.status(500).json({ message: "Error generating invoice PDF" });
+      }
+    });
 
     doc.pipe(res);
 
@@ -56,24 +42,24 @@ exports.downloadInvoice = async (req, res) => {
     doc.fontSize(22).text("INVOICE", { align: "center" });
     doc.moveDown();
 
-    doc.fontSize(14).text(`Project: ${project.title}`);
-    doc.text(`Description: ${project.description}`);
+    doc.fontSize(14).text(`Project: ${project.projectTitle || project.title || 'Unknown'}`);
+    doc.text(`Description: ${project.description || 'No description provided'}`);
     doc.moveDown();
 
-    doc.text(`Hourly Rate: ₹${project.hourlyRate}`);
-    doc.text(`Total Hours: ${totalHours.toFixed(2)}`);
-    doc.text(`Total Amount: ₹${totalAmount.toFixed(2)}`);
+    doc.text(`Hourly Rate: ₹${Number(invoice.hourlyRate || 0).toFixed(2)}`);
+    doc.text(`Total Hours: ${Number(invoice.totalHours || 0).toFixed(2)}`);
+    doc.text(`Total Amount: ₹${Number(invoice.totalAmount || 0).toFixed(2)}`);
 
     doc.moveDown();
     doc.text("Thank you for your business!", { align: "center" });
 
     doc.end();
 
-    doc.end();
-
   } catch (err) {
     console.log(err);
-    res.status(500).json({ message: "Error generating invoice PDF" });
+    if (!res.headersSent) {
+      res.status(500).json({ message: "Error generating invoice PDF" });
+    }
   }
 };
 
