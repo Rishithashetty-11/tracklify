@@ -9,6 +9,7 @@
     "@testing-library/user-event": "^13.5.0",
     "autoprefixer": "^10.4.27",
     "axios": "^1.13.6",
+    "express": "^5.2.1",
     "jspdf": "^4.2.1",
     "lucide-react": "^0.577.0",
     "postcss": "^8.5.8",
