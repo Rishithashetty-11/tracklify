@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const Project = require("./backend/models/project");
+const Project = require("../backend/models/project");
 
 mongoose.connect("mongodb://127.0.0.1:27017/freelancer").then(async () => {
     // Delete legacy projects without correct rates

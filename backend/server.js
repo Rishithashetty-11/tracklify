@@ -6,11 +6,22 @@ const connectDB = require("./config/db");
 
 const app = express();
 
-// ✅ CORS setup (IMPORTANT)
+//CORS setup
+const allowedOrigins = [
+  "https://tracklify-sfor-bs7d1acra-tracklify.vercel.app",
+  "http://localhost:3000",
+  "https://localhost:3000",
+];
+
 app.use(cors({
-  origin: "https://tracklify-sfor-bs7d1acra-tracklify.vercel.app", // 👉 replace with your frontend URL
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    callback(new Error("Not allowed by CORS"));
+  },
   methods: ["GET", "POST", "PUT", "DELETE"],
-  credentials: true
+  credentials: true,
 }));
 
 app.use(express.json());
@@ -27,7 +38,7 @@ app.use("/api", require("./routes/payment"));
 app.use("/api", require("./routes/client"));
 app.use("/api", require("./routes/notification"));
 
-// ✅ default route (for testing)
+// default route (for testing)
 app.get("/", (req, res) => {
   res.send("Backend running successfully 🚀");
 });

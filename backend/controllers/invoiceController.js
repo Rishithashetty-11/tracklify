@@ -7,7 +7,7 @@ exports.downloadInvoice = async (req, res) => {
   try {
     const invoiceId = req.params.id;
 
-    // ✅ get invoice
+    // get invoice
     const invoice = await Invoice.findById(invoiceId).populate('projectId');
 
     if (!invoice) {
@@ -19,7 +19,7 @@ exports.downloadInvoice = async (req, res) => {
       return res.status(404).json({ message: "Project not found" });
     }
 
-    // 🧾 CREATE PDF
+    //CREATE PDF
     const doc = new PDFDocument();
 
     // headers for download
@@ -38,7 +38,7 @@ exports.downloadInvoice = async (req, res) => {
 
     doc.pipe(res);
 
-    // 🧾 PDF DESIGN
+    //PDF DESIGN
     doc.fontSize(22).text("INVOICE", { align: "center" });
     doc.moveDown();
 
