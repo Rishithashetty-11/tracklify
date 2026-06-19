@@ -2,21 +2,34 @@ pipeline {
     agent any
 
     stages {
+
         stage('Checkout') {
             steps {
-                echo 'Checking out code'
+                checkout scm
             }
         }
 
-        stage('Build') {
+        stage('Build Docker Image') {
             steps {
-                echo 'Building application'
+                sh 'docker build -t tracklify .'
             }
         }
 
-        stage('Test') {
+        stage('Stop Old Container') {
             steps {
-                echo 'Running tests'
+                sh 'docker stop tracklify || true'
+                sh 'docker rm tracklify || true'
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                sh '''
+                docker run -d \
+                --name tracklify \
+                -p 3000:3000 \
+                tracklify
+                '''
             }
         }
     }
