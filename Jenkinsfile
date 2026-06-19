@@ -10,44 +10,39 @@ stages {
         }
     }
 
-    stage('Build Docker Image') {
+    stage('Stop Existing Containers') {
         steps {
-            dir('backend') {
-                sh 'docker build -t tracklify-backend .'
-            }
+            sh 'docker-compose down || true'
         }
     }
 
-    stage('Stop Old Container') {
+    stage('Build Application') {
         steps {
-            sh '''
-            docker stop tracklify-backend || true
-            docker rm tracklify-backend || true
-            '''
+            sh 'docker-compose build'
         }
     }
 
-    stage('Deploy Container') {
+    stage('Deploy Application') {
         steps {
-            sh '''
-            docker run -d \
-            --name tracklify-backend \
-            -p 5000:5000 \
-            tracklify-backend
-            '''
+            sh 'docker-compose up -d'
+        }
+    }
+
+    stage('Verify Running Containers') {
+        steps {
+            sh 'docker ps'
         }
     }
 }
 
 post {
     success {
-        echo 'Deployment Successful'
+        echo 'Frontend and Backend deployed successfully!'
     }
 
     failure {
-        echo 'Deployment Failed'
+        echo 'Deployment failed!'
     }
 }
-
 
 }
