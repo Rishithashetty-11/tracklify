@@ -1,10 +1,9 @@
 pipeline {
 agent any
 
-
 stages {
 
-    stage('Checkout') {
+    stage('Checkout Code') {
         steps {
             checkout scm
         }
@@ -16,19 +15,19 @@ stages {
         }
     }
 
-    stage('Build Application') {
+    stage('Build Frontend & Backend') {
         steps {
             sh 'docker-compose build'
         }
     }
 
-    stage('Deploy Application') {
+    stage('Deploy Frontend & Backend') {
         steps {
             sh 'docker-compose up -d'
         }
     }
 
-    stage('Verify Running Containers') {
+    stage('Verify Deployment') {
         steps {
             sh 'docker ps'
         }
@@ -37,11 +36,11 @@ stages {
 
 post {
     success {
-        echo 'Frontend and Backend deployed successfully!'
+        echo 'Tracklify Frontend and Backend Deployed Successfully'
     }
 
     failure {
-        echo 'Deployment failed!'
+        echo 'Tracklify Deployment Failed'
     }
 }
 
