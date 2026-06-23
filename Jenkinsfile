@@ -1,6 +1,7 @@
 pipeline {
 agent any
 
+
 stages {
 
     stage('Checkout Code') {
@@ -9,38 +10,49 @@ stages {
         }
     }
 
-    stage('Stop Existing Containers') {
+    stage('Build Frontend Image') {
         steps {
-            sh 'docker-compose down || true'
+            sh 'docker build -t siramshettyrishitha/tracklify-frontend:v1 ./frontend'
         }
     }
 
-    stage('Build Frontend & Backend') {
+    stage('Build Backend Image') {
         steps {
-            sh 'docker-compose build'
+            sh 'docker build -t siramshettyrishitha/tracklify-backend:v1 ./backend'
         }
     }
 
-    stage('Deploy Frontend & Backend') {
+    stage('Push Frontend Image') {
         steps {
-            sh 'docker-compose up -d'
+            sh 'docker push siramshettyrishitha/tracklify-frontend:v1'
         }
     }
 
-    stage('Verify Deployment') {
+    stage('Push Backend Image') {
         steps {
-            sh 'docker ps'
+            sh 'docker push siramshettyrishitha/tracklify-backend:v1'
+        }
+    }
+
+    stage('Deploy To Kubernetes') {
+        steps {
+            sh '''
+            ssh -o StrictHostKeyChecking=no root@52.53.195.198 "
+            kubectl rollout restart deployment tracklify-frontend
+            kubectl rollout restart deployment tracklify-backend
+            "
+            '''
         }
     }
 }
 
 post {
     success {
-        echo 'Tracklify Frontend and Backend Deployed Successfully'
+        echo 'Tracklify deployed successfully to Kubernetes'
     }
 
     failure {
-        echo 'Tracklify Deployment Failed'
+        echo 'Tracklify deployment failed'
     }
 }
 
