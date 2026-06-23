@@ -1,7 +1,6 @@
 pipeline {
 agent any
 
-
 stages {
 
     stage('Checkout Code') {
@@ -19,6 +18,12 @@ stages {
     stage('Build Backend Image') {
         steps {
             sh 'docker build -t siramshettyrishitha/tracklify-backend:v1 ./backend'
+        }
+    }
+
+    stage('Docker Login') {
+        steps {
+            sh 'docker login -u siramshettyrishitha -p Minnu@2006'
         }
     }
 
