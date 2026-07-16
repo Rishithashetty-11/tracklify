@@ -48,21 +48,30 @@ pipeline {
         }
 
         stage('Deploy To Kubernetes') {
-        steps {
+    steps {
         sh '''
-        echo "===== DEBUG ====="
-        whoami
-        echo "HOME=$HOME"
+        ssh \
+        -i /var/lib/jenkins/.ssh/id_rsa \
+        -o StrictHostKeyChecking=no \
+        root@18.144.205.126 << 'EOF'
 
-        pwd
+        cd ~/tracklify/k8s
 
-        ls -la /var/lib/jenkins
-        ls -la /var/lib/jenkins/.ssh
+        kubectl apply -f .
 
-        ssh -vvv -o StrictHostKeyChecking=no root@18.144.205.126 "hostname"
+        kubectl rollout restart deployment tracklify-frontend
+        kubectl rollout restart deployment tracklify-backend
+
+        kubectl rollout status deployment/tracklify-frontend
+        kubectl rollout status deployment/tracklify-backend
+
+        kubectl get pods
+        kubectl get svc
+
+        EOF
         '''
     }
-  }
+}
 }
 
     post {
