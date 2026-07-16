@@ -29,7 +29,7 @@ pipeline {
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
                     sh '''
-                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
                     '''
                 }
             }
@@ -48,39 +48,30 @@ pipeline {
         }
 
         stage('Deploy To Kubernetes') {
-    steps {
-        sh '''
-        ssh \
-        -i /var/lib/jenkins/.ssh/id_rsa \
-        -o StrictHostKeyChecking=no \
-        root@18.144.205.126 << 'EOF'
-
-        cd ~/tracklify/k8s
-
-        kubectl apply -f .
-
-        kubectl rollout restart deployment tracklify-frontend
-        kubectl rollout restart deployment tracklify-backend
-
-        kubectl rollout status deployment/tracklify-frontend
-        kubectl rollout status deployment/tracklify-backend
-
-        kubectl get pods
-        kubectl get svc
-
-        EOF
-        '''
+            steps {
+                sh '''
+                    ssh -o StrictHostKeyChecking=no root@18.144.205.126 "
+                        cd ~/tracklify/k8s &&
+                        kubectl apply -f . &&
+                        kubectl rollout restart deployment tracklify-frontend &&
+                        kubectl rollout restart deployment tracklify-backend &&
+                        kubectl rollout status deployment/tracklify-frontend &&
+                        kubectl rollout status deployment/tracklify-backend &&
+                        kubectl get pods &&
+                        kubectl get svc
+                    "
+                '''
+            }
+        }
     }
-}
-}
 
     post {
         success {
-            echo 'Tracklify deployed successfully to Kubernetes'
+            echo 'Tracklify deployed successfully to Kubernetes!'
         }
 
         failure {
-            echo 'Tracklify deployment failed'
+            echo 'Tracklify deployment failed.'
         }
     }
 }
