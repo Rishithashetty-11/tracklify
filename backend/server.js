@@ -5,6 +5,7 @@ require("dotenv").config();
 const connectDB = require("./config/db");
 
 const app = express();
+const client = require("prom-client");
 
 //CORS setup
 const allowedOrigins = [
@@ -28,6 +29,9 @@ app.use(express.json());
 
 // DB connect
 connectDB();
+const collectDefaultMetrics = client.collectDefaultMetrics;
+
+collectDefaultMetrics();
 
 // routes
 app.use("/api", require("./routes/auth"));
@@ -38,6 +42,10 @@ app.use("/api", require("./routes/payment"));
 app.use("/api", require("./routes/client"));
 app.use("/api", require("./routes/notification"));
 
+app.get("/metrics", async (req, res) => {
+    res.set("Content-Type", client.register.contentType);
+    res.end(await client.register.metrics());
+});
 // default route (for testing)
 app.get("/", (req, res) => {
   res.send("Backend running successfully 🚀");
