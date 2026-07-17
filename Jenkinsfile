@@ -20,6 +20,17 @@ pipeline {
                 sh 'docker build -t siramshettyrishitha/tracklify-backend:v1 ./backend'
             }
         }
+        stage('Trivy Scan - Backend') {
+           steps {
+               sh 'trivy image siramshettyrishitha/tracklify-backend:v1'
+         }
+       }
+
+       stage('Trivy Scan - Frontend') {
+         steps {
+              sh 'trivy image siramshettyrishitha/tracklify-frontend:v1'
+       }
+     }
 
         stage('Docker Login') {
             steps {
