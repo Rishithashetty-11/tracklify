@@ -61,7 +61,7 @@ pipeline {
         stage('Deploy To Kubernetes') {
             steps {
                 sh '''
-                    ssh -o StrictHostKeyChecking=no root@18.144.205.126 "
+                    ssh -o StrictHostKeyChecking=no root@3.101.57.161 "
                         cd ~/tracklify/k8s &&
                         kubectl apply -f . &&
                         kubectl rollout restart deployment tracklify-frontend &&
